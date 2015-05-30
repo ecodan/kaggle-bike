@@ -29,34 +29,55 @@ def main(in_dir, out_dir):
     df['dow'] = df['datetime'].apply(lambda x: x.weekday())
 
     X, enc, scalar = bc.prep_data(df)
+    # output prepped file for visual review
+    # X.to_csv(out_dir + '/X.csv', sep=',', header=True, index=False)
 
     y = df[['count']].values
+
+    Xcorr = pd.concat([X, df[['count']]], axis=1)
+    Ycorr = Xcorr.corr()
+    # output prepped file for visual review
+    Ycorr.to_csv(out_dir + '/Ycorr.csv', sep=',', header=True, index=False)
+
+    # strip X down to minimal columns based on pearson coef
+    # cols = [0,1,2,3,7,9,12,14,17,18,20,21,32,33,34,35,36,37,38,40,48,49,50,51,55]
+    # Xmini = X[cols]
+    # print("shrunk X from " + str(X.columns) + " to " + str(Xmini.columns))
+    # X = Xmini
 
     X_train, X_test, y_train, y_test = sl.cross_validation.train_test_split(X, y)
 
     # clf = linear_model.LinearRegression()
     # clf = sl.tree.DecisionTreeRegressor()
     # clf = ensemble.GradientBoostingClassifier()
-    # clf = ensemble.GradientBoostingRegressor()
-    clf = ensemble.RandomForestRegressor()
-    param_grid = {'n_estimators': [5,10,20,50], 'max_features': (None,0.75,0.50,0.25)}
+    clf = ensemble.GradientBoostingRegressor(verbose=1)
+    param_grid = {'loss':('ls','lad','huber','quantile'), 'n_estimators':[50,100,500], 'max_features':(None,'auto'), 'max_depth':(10,20,40)}
+    # clf = ensemble.RandomForestRegressor()
+    # param_grid = {'n_estimators': [5,10,20,50,100,500,1000], 'max_features': (None,0.75,0.50,0.25)}
 
     rmsle_scorer = sl.metrics.make_scorer(bc.score_func, greater_is_better=False)
 
     # train the rental model
     print ('training')
-    srch = sl.grid_search.GridSearchCV(clf, param_grid, rmsle_scorer)
+    srch = sl.grid_search.GridSearchCV(clf, param_grid, scoring=rmsle_scorer, verbose=1)
     srch.fit(X_train, y_train.ravel())
     clf = srch.best_estimator_
     print('clf stats: best_score=%f best_params=%s' % (srch.best_score_, srch.best_params_) )
 
+    # clf = ensemble.RandomForestRegressor(n_estimators = 500, verbose = 1, n_jobs=10)
+    # clf = linear_model.LinearRegression()
+    # clf = ensemble.GradientBoostingRegressor(n_estimators=500, verbose=1, loss='huber', max_depth=24)
+
+    clf.fit(X_train, y_train.ravel())
+
     zc = clf.predict(X_test)
+    print("number rows < 0 = " + str(len(zc[zc<0])))
     zc[zc<0] = 0
-    print ('clf Xtrain RMSLE: ' + str(bc.score_func(y_test, zc)))
+    print ('clf CV RMSLE: ' + str(bc.score_func(y_test, zc)))
 
     # full prediction + addition
-    z = clf.predict(X)
-    print ('clf Xt RMSLE: ' + str(bc.score_func(y, z)))
+    # z = clf.predict(X)
+    # print ('clf Xt RMSLE: ' + str(bc.score_func(y, z)))
 
 
     ##############
@@ -68,6 +89,8 @@ def main(in_dir, out_dir):
     df_test['dow'] = df_test['datetime'].apply(lambda x: x.weekday())
 
     Xtest, enc, scalar = bc.prep_data(df_test, enc, scalar)
+
+    # Xtest = Xtest[cols]
 
     # full prediction + addition
     zc = clf.predict(Xtest)
