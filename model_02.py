@@ -50,10 +50,10 @@ def main(in_dir, out_dir):
     # clf = linear_model.LinearRegression()
     # clf = sl.tree.DecisionTreeRegressor()
     # clf = ensemble.GradientBoostingClassifier()
-    clf = ensemble.GradientBoostingRegressor(verbose=1)
-    param_grid = {'loss':('ls','lad','huber','quantile'), 'n_estimators':[50,100,500], 'max_features':(None,'auto'), 'max_depth':(10,20,40)}
-    # clf = ensemble.RandomForestRegressor()
-    # param_grid = {'n_estimators': [5,10,20,50,100,500,1000], 'max_features': (None,0.75,0.50,0.25)}
+    # clf = ensemble.GradientBoostingRegressor(verbose=1)
+    # param_grid = {'loss':('ls','lad','huber','quantile'), 'n_estimators':[50,100,500], 'max_features':(None,'auto'), 'max_depth':(10,20,40)}
+    clf = ensemble.RandomForestRegressor()
+    param_grid = {'n_estimators': [5,10,20,50,100,500,1000], 'max_features': (None,0.75,0.50,0.25)}
 
     rmsle_scorer = sl.metrics.make_scorer(bc.score_func, greater_is_better=False)
 
